@@ -89,3 +89,7 @@ for epoch in range(1, epochs + 1):
     historico = pd.concat(objs= [historico, df_tmp], ignore_index=True, sort=False)
 
 print("Accuracy final: {}".format(round(accuracy.item(), 4)))
+
+#Matriz de confusion
+#Gráficos f1, precision, recall
+#fastapi
