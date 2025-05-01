@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 from typing import Literal
 import torch
+import torch.nn as nn
 import numpy as np
 from sklearn.preprocessing import LabelEncoder
 import psycopg2
@@ -39,9 +40,24 @@ class Transaction(BaseModel):
 # --------------------------
 # Cargar el modelo completo
 # --------------------------
-model = torch.load("modelo_fruade.pth", map_location=torch.device('cpu'))
-model.eval()
+class Red(nn.Module):
+    def __init__(self, n_entradas):
+        super(Red, self).__init__()
+        self.linear1 = nn.Linear(n_entradas, 15)
+        self.linear2 = nn.Linear(15, 8)
+        self.linear3 = nn.Linear(8, 1)
 
+    def forward(self, inputs):
+        x = torch.sigmoid(self.linear1(inputs))
+        x = torch.sigmoid(self.linear2(x))
+        return torch.sigmoid(self.linear3(x))
+    
+model = torch.load(
+    "modelo_fraude.pth",
+    map_location=torch.device("cpu"),
+    weights_only=False 
+)
+model.eval()
 # --------------------------
 # LabelEncoder (clases conocidas)
 # --------------------------
