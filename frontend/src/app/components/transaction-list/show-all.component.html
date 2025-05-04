@@ -1,0 +1,44 @@
+<!-- src/app/components/transaction-list/show-all.component.html -->
+<div class="tx-container">
+  <h2>Transacciones Bancarias</h2>
+
+  <div class="actions">
+    <button (click)="loadAll()">Ver todas</button>
+    <button (click)="loadFrauds()">Ver solo fraudes</button>
+  </div>
+
+  <table class="tx-table">
+    <thead>
+      <tr>
+        <th>Step</th>
+        <th>Tipo</th>
+        <th>Monto</th>
+        <th>Orig</th>
+        <th>New Orig</th>
+        <th>Dest</th>
+        <th>New Dest</th>
+        <th>Fraude</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let tx of transactions | slice:(pageIndex*pageSize):(pageIndex*pageSize+pageSize)">
+        <td>{{ tx.step }}</td>
+        <td>{{ tx.type }}</td>
+        <td>{{ tx.amount | number:'1.2-2' }}</td>
+        <td>{{ tx.oldbalanceOrg | number }}</td>
+        <td>{{ tx.newbalanceOrig | number }}</td>
+        <td>{{ tx.nameDest }}</td>
+        <td>{{ tx.newbalanceDest | number }}</td>
+        <td [class.fraud]="tx.isFraud === 1">
+          {{ tx.isFraud ? 'Sí' : 'No' }}
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="pagination">
+    <button (click)="prevPage()" [disabled]="pageIndex === 0">« Anterior</button>
+    <span>Página {{ pageIndex + 1 }} / {{ totalPages }}</span>
+    <button (click)="nextPage()" [disabled]="pageIndex + 1 === totalPages">Siguiente »</button>
+  </div>
+</div>

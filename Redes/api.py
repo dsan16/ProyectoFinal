@@ -1,28 +1,27 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Query
 from pydantic import BaseModel
-from typing import Literal
+from typing import Literal, Optional, List
 import torch
 import torch.nn as nn
 import numpy as np
 from sklearn.preprocessing import LabelEncoder
-import psycopg2
+import sqlite3
+from fastapi.responses import StreamingResponse
+from fastapi.middleware.cors import CORSMiddleware
+import json
+
+# cd /d E:\Dani\ProyectoFinal
+
 
 # --------------------------
-# Configuración PostgreSQL
+# Conexión SQLite
 # --------------------------
-DB_CONFIG = {
-    "host": "localhost",
-    "port": "5432",
-    "database": "transaccionesBancarias",
-    "user": "admin",
-    "password": "admin"
-}
-
+DB_PATH = "transacciones.db"
 def get_connection():
-    return psycopg2.connect(**DB_CONFIG)
+    return sqlite3.connect(DB_PATH)
 
 # --------------------------
-# Clase Pydantic para la entrada
+# Pydantic para entrada del /predict
 # --------------------------
 class Transaction(BaseModel):
     step: int
@@ -34,14 +33,24 @@ class Transaction(BaseModel):
     nameDest: str
     oldbalanceDest: float
     newbalanceDest: float
-    isFraud: int
-    isFlaggedFraud: int
+    isFraud: int = 0
+    isFlaggedFraud: int = 0
 
 # --------------------------
-# Cargar el modelo completo
+# Pydantic para las nuevas consultas
+# --------------------------
+class LimitRequest(BaseModel):
+    limit: int = 10
+
+class OriginRequest(BaseModel):
+    nameOrig: str
+    limit: int = 10
+
+# --------------------------
+# Definición de la red
 # --------------------------
 class Red(nn.Module):
-    def __init__(self, n_entradas):
+    def __init__(self, n_entradas: int):
         super(Red, self).__init__()
         self.linear1 = nn.Linear(n_entradas, 15)
         self.linear2 = nn.Linear(15, 8)
@@ -51,56 +60,49 @@ class Red(nn.Module):
         x = torch.sigmoid(self.linear1(inputs))
         x = torch.sigmoid(self.linear2(x))
         return torch.sigmoid(self.linear3(x))
-    
-model = torch.load(
-    "modelo_fraude.pth",
-    map_location=torch.device("cpu"),
-    weights_only=False 
-)
-model.eval()
+
 # --------------------------
-# LabelEncoder (clases conocidas)
+# Carga de pesos (state_dict)
+# --------------------------
+state_dict = torch.load("modelo_fraude_weights.pth", map_location="cpu")
+model = Red(n_entradas=13)
+model.load_state_dict(state_dict)
+model.eval()
+
+# --------------------------
+# LabelEncoder
 # --------------------------
 encoder = LabelEncoder()
 encoder.classes_ = np.array(['CASH_IN', 'CASH_OUT', 'DEBIT', 'PAYMENT', 'TRANSFER'])
 
 # --------------------------
-# Función para obtener conteos desde PostgreSQL
+# Funciones auxiliares
 # --------------------------
 def get_tx_counts(nameOrig: str, nameDest: str):
     conn = get_connection()
-    cursor = conn.cursor()
-
-    cursor.execute("SELECT COUNT(*) FROM transacciones WHERE nameOrig = %s", (nameOrig,))
-    orig_count = cursor.fetchone()[0]
-
-    cursor.execute("SELECT COUNT(*) FROM transacciones WHERE nameDest = %s", (nameDest,))
-    dest_count = cursor.fetchone()[0]
-
-    cursor.close()
+    cur = conn.cursor()
+    cur.execute("SELECT COUNT(*) FROM transacciones WHERE nameOrig = ?", (nameOrig,))
+    orig_count = cur.fetchone()[0]
+    cur.execute("SELECT COUNT(*) FROM transacciones WHERE nameDest = ?", (nameDest,))
+    dest_count = cur.fetchone()[0]
+    cur.close()
     conn.close()
     return orig_count, dest_count
 
-# --------------------------
-# Transformar la transacción para el modelo
-# --------------------------
-def transformar_transaccion(transaction: dict, orig_count: int, dest_count: int):
-    step = transaction["step"]
-    type_str = transaction["type"]
-    amount = transaction["amount"]
-    oldbalanceOrg = transaction["oldbalanceOrg"]
-    newbalanceOrig = transaction["newbalanceOrig"]
-    oldbalanceDest = transaction["oldbalanceDest"]
-    newbalanceDest = transaction["newbalanceDest"]
-    nameDest = transaction["nameDest"]
-
-    type_encoded = encoder.transform([type_str])[0]
-    is_transfer = int(type_str == 'TRANSFER')
-    is_cashout = int(type_str == 'CASH_OUT')
+def transformar_transaccion(tx: dict, orig_count: int, dest_count: int):
+    step = tx["step"]
+    type_encoded = encoder.transform([tx["type"]])[0]
+    amount = tx["amount"]
+    oldbalanceOrg = tx["oldbalanceOrg"]
+    newbalanceOrig = tx["newbalanceOrig"]
+    oldbalanceDest = tx["oldbalanceDest"]
+    newbalanceDest = tx["newbalanceDest"]
+    is_transfer = int(tx["type"] == 'TRANSFER')
+    is_cashout = int(tx["type"] == 'CASH_OUT')
     hour_of_day = step % 24
-    is_merchant = int(nameDest.startswith('M'))
+    is_merchant = int(tx["nameDest"].startswith('M'))
 
-    entrada = np.array([
+    features = np.array([
         step,
         type_encoded,
         amount,
@@ -116,13 +118,22 @@ def transformar_transaccion(transaction: dict, orig_count: int, dest_count: int)
         is_merchant
     ], dtype=np.float32).reshape(1, -1)
 
-    return torch.tensor(entrada, dtype=torch.float32)
+    return torch.tensor(features, dtype=torch.float32)
 
 # --------------------------
-# FastAPI app
+# FastAPI App
 # --------------------------
 app = FastAPI()
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:4200"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Endpoint original de predicción
 @app.post("/predict")
 def predecir_fraude(transaccion: Transaction):
     orig_count, dest_count = get_tx_counts(transaccion.nameOrig, transaccion.nameDest)
@@ -138,16 +149,67 @@ def predecir_fraude(transaccion: Transaction):
         "orig_tx_count": orig_count,
         "dest_tx_count": dest_count
     }
-"""
-class Transaction(BaseModel):
-    step: int
-    type: str
-    amount: float
-    oldbalanceOrg: float
-    newbalanceOrig: float
-    oldbalanceDest: float
-    newbalanceDest: float
-    orig_tx_count: int
-    dest_tx_count: int
-    hour_of_day: int
-    is_merchant: int """
+
+@app.get("/transactions/all")
+def all_transactions():
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute("SELECT * FROM transacciones LIMIT 8000")
+    cols = [c[0] for c in cur.description]
+
+    def row_generator():
+        yield "["
+        first = True
+        for row in cur:
+            if not first:
+                yield ","
+            else:
+                first = False
+            yield json.dumps(dict(zip(cols, row)))
+        yield "]"
+        cur.close()
+        conn.close()
+
+    return StreamingResponse(row_generator(), media_type="application/json")
+
+@app.get("/transactions/allFraud")
+def all_transactions():
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute("SELECT * FROM transacciones WHERE isFraud = 1")
+    cols = [c[0] for c in cur.description]
+
+    def row_generator():
+        yield "["
+        first = True
+        for row in cur:
+            if not first:
+                yield ","
+            else:
+                first = False
+            yield json.dumps(dict(zip(cols, row)))
+        yield "]"
+        cur.close()
+        conn.close()
+
+    return StreamingResponse(row_generator(), media_type="application/json")
+
+@app.get("/transactions/by_origin", response_model=List[dict])
+def transactions_by_origin(
+    nameOrig: str = Query(..., description="ID del origen"),
+    limit: int = Query(10, ge=1, description="Número máximo de registros")
+):
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute(
+        "SELECT * FROM transacciones WHERE nameOrig = ? LIMIT ?",
+        (nameOrig, limit)
+    )
+    rows = cur.fetchall()
+    cols = [c[0] for c in cur.description]
+    cur.close(); conn.close()
+    return [dict(zip(cols, row)) for row in rows]
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run("api:app", host="0.0.0.0", port=8000, reload=True)

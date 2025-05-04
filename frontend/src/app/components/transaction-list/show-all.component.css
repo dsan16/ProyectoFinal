@@ -1,0 +1,71 @@
+.tx-container {
+    max-width: 1000px;
+    margin: 2rem auto;
+    padding: 0 1rem;
+    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  }
+  
+  .tx-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 1rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+  
+  .tx-table th,
+  .tx-table td {
+    padding: 0.75rem;
+    text-align: left;
+    border-bottom: 1px solid #ddd;
+  }
+  
+  .tx-table th {
+    background-color: #4a90e2;
+    color: #fff;
+    position: sticky;
+    top: 0;
+  }
+  
+  .tx-table tr:nth-child(even) {
+    background-color: #f9f9f9;
+  }
+  
+  .tx-table tr:hover {
+    background-color: #e1f5fe;
+  }
+  
+  .tx-table td.fraud {
+    color: #e53935;
+    font-weight: bold;
+  }
+  
+  .pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 1rem;
+  }
+  
+  .pagination button {
+    background-color: #4a90e2;
+    border: none;
+    padding: 0.5rem 1rem;
+    color: #fff;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+  }
+  
+  .pagination button:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+  }
+  
+  .pagination button:hover:not(:disabled) {
+    background-color: #357abd;
+  }
+  
+  .pagination span {
+    font-size: 1rem;
+  }
+  
