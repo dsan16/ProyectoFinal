@@ -1,63 +1,71 @@
+<!-- src/app/components/transaction-predict/prediction.component.html -->
 <div class="predict-container">
-    <h2>Predicción de Fraude</h2>
-    <form [formGroup]="form" (ngSubmit)="submit()">
-      <div class="form-group">
-        <label>Step:
-          <input type="number" formControlName="step">
-        </label>
-      </div>
-      <div class="form-group">
-        <label>Tipo:
-          <select formControlName="type">
-            <option *ngFor="let t of tipos" [value]="t">{{ t }}</option>
-          </select>
-        </label>
-      </div>
-      <div class="form-group">
-        <label>Monto:
-          <input type="number" formControlName="amount" step="0.01">
-        </label>
-      </div>
-      <div class="form-group">
-        <label>NameOrig:
-          <input type="text" formControlName="nameOrig">
-        </label>
-      </div>
-      <div class="form-group">
-        <label>Old Balance Orig:
-          <input type="number" formControlName="oldbalanceOrg" step="0.01">
-        </label>
-      </div>
-      <div class="form-group">
-        <label>New Balance Orig:
-          <input type="number" formControlName="newbalanceOrig" step="0.01">
-        </label>
-      </div>
-      <div class="form-group">
-        <label>NameDest:
-          <input type="text" formControlName="nameDest">
-        </label>
-      </div>
-      <div class="form-group">
-        <label>Old Balance Dest:
-          <input type="number" formControlName="oldbalanceDest" step="0.01">
-        </label>
-      </div>
-      <div class="form-group">
-        <label>New Balance Dest:
-          <input type="number" formControlName="newbalanceDest" step="0.01">
-        </label>
-      </div>
-      <button type="submit" [disabled]="form.invalid">Predecir</button>
-    </form>
-  
-    <div *ngIf="result" class="result">
-      <p><strong>Probabilidad de fraude:</strong>
-        {{ (result.probabilidad_fraude * 100) | number:'1.2-2' }}%
-      </p>
-      <p><strong>¿Es fraude?</strong>
-        {{ result.es_fraude ? 'Sí' : 'No' }}
-      </p>
+  <h2>Predicción de Fraude</h2>
+
+  <form [formGroup]="form" (ngSubmit)="submit()">
+    <div class="form-group">
+      <label>Tipo:
+        <select formControlName="type">
+          <option *ngFor="let t of tipos" [value]="t">{{ t }}</option>
+        </select>
+      </label>
     </div>
+    <div class="form-group">
+      <label>Monto:
+        <input type="number" formControlName="amount" step="0.01">
+      </label>
+    </div>
+    <div class="form-group">
+      <label>Cuenta origen:
+        <input type="text" formControlName="nameOrig">
+      </label>
+    </div>
+    <div class="form-group">
+      <label>Balance antiguo original:
+        <input type="number" formControlName="oldbalanceOrg" step="0.01">
+      </label>
+    </div>
+    <div class="form-group">
+      <label>Nuevo balance original:
+        <input type="number" formControlName="newbalanceOrig" step="0.01">
+      </label>
+    </div>
+    <div class="form-group">
+      <label>Cuenta destino:
+        <input type="text" formControlName="nameDest">
+      </label>
+    </div>
+    <div class="form-group">
+      <label>Balance antiguo destino:
+        <input type="number" formControlName="oldbalanceDest" step="0.01">
+      </label>
+    </div>
+    <div class="form-group">
+      <label>Nuevo balance destino:
+        <input type="number" formControlName="newbalanceDest" step="0.01">
+      </label>
+    </div>
+    <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
+      <button type="submit" class="main-button" [disabled]="form.invalid">
+        Predecir
+      </button>
+      <button type="button" class="main-button" (click)="insert()" [disabled]="form.invalid">
+        Insertar
+      </button>
+    </div>
+  </form>
+
+  <div *ngIf="result" class="result" style="margin-top: 1rem;">
+    <p><strong>Probabilidad de fraude:</strong>
+      {{ (result.probabilidad_fraude * 100) | number:'1.2-2' }}%
+    </p>
+    <p><strong>¿Es fraude?</strong>
+      {{ result.es_fraude ? 'Sí' : 'No' }}
+    </p>
   </div>
-  
+
+  <!-- Botón para volver a Transacciones -->
+  <button routerLink="/transactions" class="main-button" style="margin-top: 1rem;">
+    Transacciones
+  </button>
+</div>

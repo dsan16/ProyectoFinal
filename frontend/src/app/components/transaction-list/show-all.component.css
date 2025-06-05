@@ -1,71 +1,165 @@
+/* src/app/components/transaction-list/show-all.component.css */
+
+/* Hacer que el contenedor ocupe toda la ventana */
+:host {
+  display: block;
+  width: 100vw;
+  height: 100vh;
+  overflow: auto;
+}
+
 .tx-container {
-    max-width: 1000px;
-    margin: 2rem auto;
-    padding: 0 1rem;
-    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-  }
-  
-  .tx-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-bottom: 1rem;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  }
-  
-  .tx-table th,
-  .tx-table td {
-    padding: 0.75rem;
-    text-align: left;
-    border-bottom: 1px solid #ddd;
-  }
-  
-  .tx-table th {
-    background-color: #4a90e2;
-    color: #fff;
-    position: sticky;
-    top: 0;
-  }
-  
-  .tx-table tr:nth-child(even) {
-    background-color: #f9f9f9;
-  }
-  
-  .tx-table tr:hover {
-    background-color: #e1f5fe;
-  }
-  
-  .tx-table td.fraud {
-    color: #e53935;
-    font-weight: bold;
-  }
-  
-  .pagination {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 1rem;
-  }
-  
-  .pagination button {
-    background-color: #4a90e2;
-    border: none;
-    padding: 0.5rem 1rem;
-    color: #fff;
-    border-radius: 4px;
-    cursor: pointer;
-    transition: background-color 0.2s;
-  }
-  
-  .pagination button:disabled {
-    background-color: #ccc;
-    cursor: not-allowed;
-  }
-  
-  .pagination button:hover:not(:disabled) {
-    background-color: #357abd;
-  }
-  
-  .pagination span {
-    font-size: 1rem;
-  }
-  
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  padding: 1.5rem;
+  background-color: #1f1f1f;
+  color: #e0e0e0;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Heading */
+.tx-container h2 {
+  margin: 0 0 1rem 0;
+  font-size: 2rem;
+  color: #ffffff;
+  border-bottom: 2px solid #555;
+  padding-bottom: 0.5rem;
+}
+
+/* Actions & Filter */
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.filter-group input,
+.filter-group button,
+.action-buttons button {
+  font-size: 0.9rem;
+}
+
+.filter-group input,
+.filter-group button {
+  padding: 0.5rem;
+  border: 1px solid #444;
+  background-color: #2a2a2a;
+  color: #e0e0e0;
+  border-radius: 4px;
+  outline: none;
+  transition: border-color 0.2s, background-color 0.2s;
+}
+
+.filter-group input:focus {
+  border-color: #888;
+}
+
+.filter-group button {
+  background-color: #333;
+  border: 1px solid #444;
+  cursor: pointer;
+}
+
+.filter-group button:hover {
+  background-color: #444;
+}
+
+/* Action buttons */
+.action-buttons {
+  margin-left: auto;
+  display: flex;
+  gap: 0.5rem;
+}
+
+.action-buttons button {
+  padding: 0.5rem 1rem;
+  background-color: #333;
+  color: #fafafa;
+  border: 1px solid #444;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.action-buttons button:hover {
+  background-color: #444;
+}
+
+/* Table styling */
+.tx-table {
+  flex: 1;
+  width: 100%;
+  border-collapse: collapse;
+  background-color: #2a2a2a;
+  border-radius: 4px;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+}
+
+.tx-table th,
+.tx-table td {
+  padding: 0.75rem 1rem;
+  text-align: left;
+  border-bottom: 1px solid #444;
+}
+
+.tx-table th {
+  background-color: #333;
+  color: #fafafa;
+  font-weight: 600;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.tx-table tr:nth-child(even) {
+  background-color: #2f2f2f;
+}
+
+.tx-table tr:hover {
+  background-color: #3d3d3d;
+}
+
+.tx-table td.fraud {
+  color: #ff4c4c;
+  font-weight: bold;
+}
+
+/* Pagination */
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.pagination button {
+  padding: 0.5rem 1rem;
+  background-color: #333;
+  color: #e0e0e0;
+  border: 1px solid #444;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.pagination button:hover:not(:disabled) {
+  background-color: #444;
+}
+
+.pagination button:disabled {
+  background-color: #1a1a1a;
+  border-color: #333;
+  color: #555;
+  cursor: not-allowed;
+}
+
+.pagination span {
+  font-size: 1rem;
+  color: #ccc;
+}

@@ -2,9 +2,32 @@
 <div class="tx-container">
   <h2>Transacciones Bancarias</h2>
 
-  <div class="actions">
-    <button (click)="loadAll()">Ver todas</button>
-    <button (click)="loadFrauds()">Ver solo fraudes</button>
+  <div class="actions" style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem;">
+    <!-- Filtro por cuenta y límite -->
+    <div class="filter-group" style="display: flex; gap: 0.5rem; align-items: center;">
+      <input
+        type="text"
+        [(ngModel)]="filterName"
+        placeholder="Cuenta destino"
+        style="padding: 0.25rem; width: 150px; border: 1px solid #ccc; border-radius: 4px;"
+      />
+      <input
+        type="number"
+        [(ngModel)]="filterLimit"
+        placeholder="Límite"
+        min="1"
+        style="padding: 0.25rem; width: 60px; border: 1px solid #ccc; border-radius: 4px;"
+      />
+      <button (click)="loadByOrigin()" style="padding: 0.5rem 1rem;">Filtrar</button>
+    </div>
+
+    <!-- Botones de acción -->
+    <div class="action-buttons" style="margin-left: auto; display: flex; gap: 0.5rem;">
+      <button (click)="loadAll()" style="padding: 0.5rem 1rem;">Ver todas</button>
+      <button (click)="loadFrauds()" style="padding: 0.5rem 1rem;">Ver solo fraudes</button>
+      <!-- Botón para ir a la página de Predicción -->
+      <button [routerLink]="['/prediction']" style="padding: 0.5rem 1rem;">Predecir</button>
+    </div>
   </div>
 
   <table class="tx-table">
@@ -13,18 +36,24 @@
         <th>Step</th>
         <th>Tipo</th>
         <th>Monto</th>
-        <th>Orig</th>
-        <th>New Orig</th>
-        <th>Dest</th>
-        <th>New Dest</th>
+        <th>Origen</th>
+        <th>Nuevo Origen</th>
+        <th>Destino</th>
+        <th>Nuevo Destino</th>
         <th>Fraude</th>
       </tr>
     </thead>
     <tbody>
-      <tr *ngFor="let tx of transactions | slice:(pageIndex*pageSize):(pageIndex*pageSize+pageSize)">
+      <tr
+        *ngFor="
+          let tx of
+            transactions
+              | slice:(pageIndex * pageSize):(pageIndex * pageSize + pageSize)
+        "
+      >
         <td>{{ tx.step }}</td>
         <td>{{ tx.type }}</td>
-        <td>{{ tx.amount | number:'1.2-2' }}</td>
+        <td>{{ tx.amount | number: '1.2-2' }}</td>
         <td>{{ tx.oldbalanceOrg | number }}</td>
         <td>{{ tx.newbalanceOrig | number }}</td>
         <td>{{ tx.nameDest }}</td>
@@ -36,7 +65,7 @@
     </tbody>
   </table>
 
-  <div class="pagination">
+  <div class="pagination" style="display: flex; justify-content: center; align-items: center; gap: 1rem; margin-top: 1rem;">
     <button (click)="prevPage()" [disabled]="pageIndex === 0">« Anterior</button>
     <span>Página {{ pageIndex + 1 }} / {{ totalPages }}</span>
     <button (click)="nextPage()" [disabled]="pageIndex + 1 === totalPages">Siguiente »</button>

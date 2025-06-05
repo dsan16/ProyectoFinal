@@ -34,11 +34,15 @@ export class TransactionService {
 
   // Predice si una transacción es fraudulenta o no y devuelve la probabilidad de fraude
   predictTransaction(
-    transaction: Omit<Transaction, 'isFraud' | 'isFlaggedFraud'>
+    transaction: Omit<Transaction, 'step' | 'isFraud' | 'isFlaggedFraud'>
   ): Observable<PredictResponse> {
     return this.http.post<PredictResponse>(
       `${this.API_URL}/predict`,
       transaction
     );
+  }
+
+  insertTransaction(payload: Omit<Transaction, 'step'|'isFraud'|'isFlaggedFraud'>): Observable<any> {
+    return this.http.post(`${this.API_URL}/transactions/insert`, payload);
   }
 } 

@@ -10,7 +10,7 @@ from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 import json
 
-# cd /d E:\Dani\ProyectoFinal
+# cd /d E:\Dani\ProyectoFinal\frontend
 
 
 # --------------------------
@@ -24,7 +24,6 @@ def get_connection():
 # Pydantic para entrada del /predict
 # --------------------------
 class Transaction(BaseModel):
-    step: int
     type: Literal['PAYMENT', 'TRANSFER', 'CASH_OUT', 'DEBIT', 'CASH_IN']
     amount: float
     nameOrig: str
@@ -52,8 +51,8 @@ class OriginRequest(BaseModel):
 class Red(nn.Module):
     def __init__(self, n_entradas: int):
         super(Red, self).__init__()
-        self.linear1 = nn.Linear(n_entradas, 15)
-        self.linear2 = nn.Linear(15, 8)
+        self.linear1 = nn.Linear(n_entradas, 128)
+        self.linear2 = nn.Linear(128, 8)
         self.linear3 = nn.Linear(8, 1)
 
     def forward(self, inputs):
@@ -120,6 +119,19 @@ def transformar_transaccion(tx: dict, orig_count: int, dest_count: int):
 
     return torch.tensor(features, dtype=torch.float32)
 
+def get_next_step() -> int:
+    """
+    Lee el mayor valor de 'step' en la tabla y devuelve +1,
+    o 1 si la tabla está vacía.
+    """
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute("SELECT MAX(step) FROM transacciones")
+    max_step = cur.fetchone()[0] or 0
+    cur.close()
+    conn.close()
+    return max_step + 1
+
 # --------------------------
 # FastAPI App
 # --------------------------
@@ -135,13 +147,25 @@ app.add_middleware(
 
 # Endpoint original de predicción
 @app.post("/predict")
-def predecir_fraude(transaccion: Transaction):
-    orig_count, dest_count = get_tx_counts(transaccion.nameOrig, transaccion.nameDest)
-    tensor_entrada = transformar_transaccion(transaccion.dict(), orig_count, dest_count)
+def predecir_fraude(req: Transaction):
+    # 1) Calculamos el nuevo step
+    step = get_next_step()
 
+    # 2) Construimos el dict completo, inyectando el step
+    tx = req.dict()
+    tx["step"] = step
+
+    # 3) Conteos en base de datos
+    orig_count, dest_count = get_tx_counts(tx["nameOrig"], tx["nameDest"])
+
+    # 4) Transformamos y predecimos
+    tensor_entrada = transformar_transaccion(tx, orig_count, dest_count)
     with torch.no_grad():
         pred = model(tensor_entrada).item()
         resultado = int(pred >= 0.5)
+
+    # 5) (Opcional) podrías aquí insertar la transacción en la BD si quieres
+    #    registrar history, pero no es estrictamente necesario para predecir.
 
     return {
         "probabilidad_fraude": round(pred, 4),
@@ -202,13 +226,48 @@ def transactions_by_origin(
     conn = get_connection()
     cur = conn.cursor()
     cur.execute(
-        "SELECT * FROM transacciones WHERE nameOrig = ? LIMIT ?",
+        "SELECT * FROM transacciones WHERE nameDest = ? LIMIT ?",
         (nameOrig, limit)
     )
     rows = cur.fetchall()
     cols = [c[0] for c in cur.description]
     cur.close(); conn.close()
     return [dict(zip(cols, row)) for row in rows]
+
+@app.post("/transactions/insert")
+def insert_transaction(transaccion: Transaction):
+    conn = get_connection()
+    cur = conn.cursor()
+    valores = (
+        get_next_step(),
+        transaccion.type,
+        transaccion.amount,
+        transaccion.nameOrig,
+        transaccion.oldbalanceOrg,
+        transaccion.newbalanceOrig,
+        transaccion.nameDest,
+        transaccion.oldbalanceDest,
+        transaccion.newbalanceDest,
+        transaccion.isFraud,
+        transaccion.isFlaggedFraud
+    )
+    try:
+        cur.execute(
+            """
+            INSERT INTO transacciones
+            (step, type, amount, nameOrig, oldbalanceOrg, newbalanceOrig,
+            nameDest, oldbalanceDest, newbalanceDest, isFraud, isFlaggedFraud)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            valores
+        )
+    except sqlite3.IntegrityError as e:
+        return {"error": "Error de integridad: " + str(e)}
+    
+    conn.commit()
+    cur.close()
+    conn.close()
+    return {"mensaje": "Transacción insertada correctamente"}
 
 if __name__ == "__main__":
     import uvicorn

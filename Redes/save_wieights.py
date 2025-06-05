@@ -31,4 +31,4 @@ full_model = torch.load(
 # --------------------------
 weights_file = "modelo_fraude_weights.pth"
 torch.save(full_model.state_dict(), weights_file)
-print(f"✔️ Pesos guardados en '{weights_file}'")
+print(f"Pesos guardados en '{weights_file}'")
